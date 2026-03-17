@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { db, pool } from './db/db';
 import { matches, commentary } from './db/schema';
-import { matchRouter } from './routes/matches';
 
 async function main() {
     try {
