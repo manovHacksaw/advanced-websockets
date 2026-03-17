@@ -1,5 +1,6 @@
 import { Server } from "http";
 import { WebSocket, WebSocketServer } from "ws";
+import { wsArcjet } from "../../arcjet";
 
 interface ExtWebSocket extends WebSocket {
     isAlive: boolean;
@@ -36,7 +37,38 @@ export function attachWebSocketServer(server: Server) {
         broadcast(wss, { type: "match_created", data: match });
     }
 
-    wss.on("connection", (ws: WebSocket) => {
+    wss.on("connection", async (ws: WebSocket, req) => {
+        if (wsArcjet) {
+            try {
+                // Extract IP since some Node servers don't populate it on the req object for WS
+                const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+
+                const decision = await wsArcjet.protect(req, { ip } as any);
+                if (decision.isDenied()) {
+                    let code = 1011; // Internal Error
+                    let reason = "Access denied";
+
+                    if (decision.reason.isRateLimit()) {
+                        code = 1013; // Try Again Later
+                        reason = "Too many requests";
+                    } else if (decision.reason.isBot()) {
+                        code = 1008; // Policy Violation
+                        reason = "No bots allowed";
+                    } else if (decision.reason.isShield()) {
+                        reason = "Suspicious activity detected";
+                    }
+
+                    ws.close(code, reason);
+                    return;
+                }
+            } catch (error) {
+                console.error("WS Arcjet protection error:", error);
+                ws.close(1011, "Internal server error during connection check");
+                return;
+            }
+        }
+
+
         const extWs = ws as ExtWebSocket;
         extWs.isAlive = true;
 
