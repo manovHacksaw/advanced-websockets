@@ -51,7 +51,7 @@ matchRouter.post("/", async (req, res) => {
             endTime: endTime ? new Date(endTime) : undefined,
             homeScore: homeScore ?? 0,
             awayScore: awayScore ?? 0,
-            status: endTime ? (getMatchStatus(startTime, endTime) ?? 'scheduled') : 'scheduled',
+            status: getMatchStatus(startTime, endTime) ?? 'scheduled',
 
         }).returning();
 
