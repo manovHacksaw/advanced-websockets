@@ -1,5 +1,6 @@
 import { Server } from "http";
 import { WebSocket, WebSocketServer } from "ws";
+import { wsArcjet } from "../../arcjet";
 
 interface ExtWebSocket extends WebSocket {
     isAlive: boolean;
@@ -27,14 +28,43 @@ export function broadcast<T extends object>(wss: WebSocketServer, payload: T) {
  */
 export function attachWebSocketServer(server: Server) {
     const wss = new WebSocketServer({
-        server,
-        path: '/ws',
+        noServer: true,
         maxPayload: 1024 * 1024 // 1MB 
     });
 
     function broadcastMatchCreated(match: any) {
         broadcast(wss, { type: "match_created", data: match });
     }
+
+    server.on("upgrade", async (req, socket, head) => {
+        const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+
+        if (pathname !== "/ws") {
+            socket.destroy();
+            return;
+        }
+
+        if (wsArcjet) {
+            try {
+                // Arcjet auto-detects IP when proxies are configured
+                const decision = await wsArcjet.protect(req);
+
+                if (decision.isDenied()) {
+                    console.log(`[WS Security] Upgrade denied. Reason: ${decision.reason.type}`);
+                    socket.end('HTTP/1.1 403 Forbidden\r\n\r\n');
+                    return;
+                }
+            } catch (error) {
+                console.error("WS Arcjet upgrade check error:", error);
+                socket.end('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+                return;
+            }
+        }
+
+        wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit("connection", ws, req);
+        });
+    });
 
     wss.on("connection", (ws: WebSocket) => {
         const extWs = ws as ExtWebSocket;
