@@ -13,6 +13,7 @@ if (!arcjetKey) {
  */
 const httpArcjet = arcjet({
     key: arcjetKey,
+    proxies: ["127.0.0.1"], // Configure trusted proxies here
     rules: [
         // Shield protects against common attacks like SQL injection, XSS, etc.
         shield({ mode: arcjetMode }),
@@ -31,6 +32,7 @@ const httpArcjet = arcjet({
 
 const wsArcjet = arcjet({
     key: arcjetKey,
+    proxies: ["127.0.0.1"], // Configure trusted proxies here
     rules: [
         // Shield protects against common attacks like SQL injection, XSS, etc.
         shield({ mode: arcjetMode }),
@@ -57,13 +59,10 @@ export function securityMiddleware() {
         }
 
         try {
-            // Forcefully extract the best guess for the IP address
-            const ip = (req.headers["x-forwarded-for"] as string) || req.ip || req.socket.remoteAddress || "127.0.0.1";
+            // Arcjet auto-detects IP when proxies are configured
+            const decision = await httpArcjet.protect(req);
 
-            // Pass the IP to Arcjet explicitly and cast to any to fix lint
-            const decision = await (httpArcjet.protect as any)(req, { ip });
-
-            console.log(`[HTTP Security] IP: ${ip} | Decision: ${decision.conclusion} | Reason: ${decision.reason.type}`);
+            console.log(`[HTTP Security] Decision: ${decision.conclusion} | Reason: ${decision.reason.type}`);
 
             if (decision.isDenied()) {
                 if (decision.reason.isRateLimit()) {

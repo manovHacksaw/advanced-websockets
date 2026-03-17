@@ -28,8 +28,7 @@ export function broadcast<T extends object>(wss: WebSocketServer, payload: T) {
  */
 export function attachWebSocketServer(server: Server) {
     const wss = new WebSocketServer({
-        server,
-        path: '/ws',
+        noServer: true,
         maxPayload: 1024 * 1024 // 1MB 
     });
 
@@ -37,39 +36,37 @@ export function attachWebSocketServer(server: Server) {
         broadcast(wss, { type: "match_created", data: match });
     }
 
-    wss.on("connection", async (ws: WebSocket, req) => {
+    server.on("upgrade", async (req, socket, head) => {
+        const { pathname } = new URL(req.url || "", `http://${req.headers.host}`);
+
+        if (pathname !== "/ws") {
+            socket.destroy();
+            return;
+        }
+
         if (wsArcjet) {
             try {
-                // Forcefully extract the best guess for the IP address
-                const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+                // Arcjet auto-detects IP when proxies are configured
+                const decision = await wsArcjet.protect(req);
 
-                // Call protect - Arcjet's Node SDK should now find the IP on req.ip
-                const decision = await (wsArcjet.protect as any)(req, { ip });
                 if (decision.isDenied()) {
-                    let code = 1011; // Internal Error
-                    let reason = "Access denied";
-
-                    if (decision.reason.isRateLimit()) {
-                        code = 1013; // Try Again Later
-                        reason = "Too many requests";
-                    } else if (decision.reason.isBot()) {
-                        code = 1008; // Policy Violation
-                        reason = "No bots allowed";
-                    } else if (decision.reason.isShield()) {
-                        reason = "Suspicious activity detected";
-                    }
-
-                    ws.close(code, reason);
+                    console.log(`[WS Security] Upgrade denied. Reason: ${decision.reason.type}`);
+                    socket.end('HTTP/1.1 403 Forbidden\r\n\r\n');
                     return;
                 }
             } catch (error) {
-                console.error("WS Arcjet protection error:", error);
-                ws.close(1011, "Internal server error during connection check");
+                console.error("WS Arcjet upgrade check error:", error);
+                socket.end('HTTP/1.1 500 Internal Server Error\r\n\r\n');
                 return;
             }
         }
 
+        wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit("connection", ws, req);
+        });
+    });
 
+    wss.on("connection", (ws: WebSocket) => {
         const extWs = ws as ExtWebSocket;
         extWs.isAlive = true;
 

@@ -5,7 +5,6 @@
     "": {
       "name": "sportz",
       "dependencies": {
-        "@arcjet/bun": "^1.3.0",
         "@arcjet/inspect": "^1.3.0",
         "@arcjet/node": "^1.3.0",
         "@types/express": "^5.0.6",
@@ -33,8 +32,6 @@
     "@arcjet/analyze-wasm": ["@arcjet/analyze-wasm@1.3.0", "", {}, "sha512-N2hYM2/AW8eXlyLofBCtvduE5kcwL8wBvnBH010+nAVdVn3Fx0J5b0aQEQ17XtXVH2B2QlHm3sUn9LhUpQfHIg=="],
 
     "@arcjet/body": ["@arcjet/body@1.3.0", "", {}, "sha512-OwxQd1gYJVKmDLTbwbDvc3E1w5twxlJujpxpL+PqaU72l/HjDytRIe21eMsCCzSE1uYb7gZ/D9XWoy89CMWFmA=="],
-
-    "@arcjet/bun": ["@arcjet/bun@1.3.0", "", { "dependencies": { "@arcjet/body": "1.3.0", "@arcjet/env": "1.3.0", "@arcjet/headers": "1.3.0", "@arcjet/ip": "1.3.0", "@arcjet/logger": "1.3.0", "@arcjet/protocol": "1.3.0", "@arcjet/transport": "1.3.0", "arcjet": "1.3.0" } }, "sha512-tlGL1e3k+R20p5SjoVlCwfT99OW8loh983T13X293JAsGwirtdySUZs9agVbozaDCDB+ESRAtMA2KlGLXmIIvA=="],
 
     "@arcjet/cache": ["@arcjet/cache@1.3.0", "", {}, "sha512-CQuyTbRAwsZjxK/w3QxOIrOyD5msQNYQDsJ5ng4fdE1l1vz9WRYvZDUZ8oYztg5qgswwILxBogPDFl1vSOhh3A=="],
 

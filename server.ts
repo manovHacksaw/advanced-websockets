@@ -5,7 +5,7 @@ import { securityMiddleware } from './arcjet'
 import http from 'http'
 
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 8000;
 const HOST = process.env.HOST || "0.0.0.0";
 
