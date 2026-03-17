@@ -1,6 +1,10 @@
 import { Server } from "http";
 import { WebSocket, WebSocketServer } from "ws";
 
+interface ExtWebSocket extends WebSocket {
+    isAlive: boolean;
+}
+
 /**
  * Sends a JSON payload to a specific socket safely.
  */
@@ -32,7 +36,13 @@ export function attachWebSocketServer(server: Server) {
         broadcast(wss, { type: "match_created", data: match });
     }
 
-    wss.on("connection", (ws) => {
+    wss.on("connection", (ws: WebSocket) => {
+        const extWs = ws as ExtWebSocket;
+        extWs.isAlive = true;
+
+        ws.on("pong", () => {
+            extWs.isAlive = true;
+        });
         console.log("New WebSocket connection established");
 
         sendJSON(ws, { type: "Welcome" });
@@ -49,6 +59,23 @@ export function attachWebSocketServer(server: Server) {
         ws.on("close", () => {
             console.log("WebSocket connection closed");
         });
+    });
+
+    const interval = setInterval(() => {
+        wss.clients.forEach((ws) => {
+            const extWs = ws as ExtWebSocket;
+            if (!extWs.isAlive) {
+                ws.terminate();
+                return;
+            }
+
+            extWs.isAlive = false;
+            ws.ping();
+        });
+    }, 10000);
+
+    wss.on("close", () => {
+        clearInterval(interval);
     });
 
     return { broadcastMatchCreated };
