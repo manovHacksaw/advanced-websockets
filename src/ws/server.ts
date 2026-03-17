@@ -1,5 +1,6 @@
 import { Server } from "http";
 import { WebSocket, WebSocketServer } from "ws";
+import { wsArcjet } from "../../arcjet";
 
 interface ExtWebSocket extends WebSocket {
     isAlive: boolean;
@@ -23,7 +24,11 @@ export function broadcast<T extends object>(wss: WebSocketServer, payload: T) {
 }
 
 /**
- * Attaches the WebSocket server to the provided HTTP server.
+ * Attach a WebSocket endpoint at `/ws` to the given HTTP server and manage client connections, heartbeat liveness checks, and optional Arcjet access protection.
+ *
+ * Sets up a WebSocketServer with a 1 MB payload limit, applies Arcjet-based connection protection when available, initializes per-connection handlers (welcome message, message/error/close handlers, and pong-based liveness), and runs a periodic heartbeat that terminates unresponsive clients.
+ *
+ * @returns An object exposing `broadcastMatchCreated(match)` which broadcasts a `match_created` event with the provided match data to all connected clients.
  */
 export function attachWebSocketServer(server: Server) {
     const wss = new WebSocketServer({
@@ -32,11 +37,48 @@ export function attachWebSocketServer(server: Server) {
         maxPayload: 1024 * 1024 // 1MB 
     });
 
+    /**
+     * Broadcasts a `match_created` event containing match data to all connected WebSocket clients.
+     *
+     * @param match - The match object to include as the `data` payload in the event
+     */
     function broadcastMatchCreated(match: any) {
         broadcast(wss, { type: "match_created", data: match });
     }
 
-    wss.on("connection", (ws: WebSocket) => {
+    wss.on("connection", async (ws: WebSocket, req) => {
+        if (wsArcjet) {
+            try {
+                // Forcefully extract the best guess for the IP address
+                const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
+
+                // Call protect - Arcjet's Node SDK should now find the IP on req.ip
+                const decision = await (wsArcjet.protect as any)(req, { ip });
+                if (decision.isDenied()) {
+                    let code = 1011; // Internal Error
+                    let reason = "Access denied";
+
+                    if (decision.reason.isRateLimit()) {
+                        code = 1013; // Try Again Later
+                        reason = "Too many requests";
+                    } else if (decision.reason.isBot()) {
+                        code = 1008; // Policy Violation
+                        reason = "No bots allowed";
+                    } else if (decision.reason.isShield()) {
+                        reason = "Suspicious activity detected";
+                    }
+
+                    ws.close(code, reason);
+                    return;
+                }
+            } catch (error) {
+                console.error("WS Arcjet protection error:", error);
+                ws.close(1011, "Internal server error during connection check");
+                return;
+            }
+        }
+
+
         const extWs = ws as ExtWebSocket;
         extWs.isAlive = true;
 
