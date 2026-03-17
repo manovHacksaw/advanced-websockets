@@ -40,10 +40,11 @@ export function attachWebSocketServer(server: Server) {
     wss.on("connection", async (ws: WebSocket, req) => {
         if (wsArcjet) {
             try {
-                // Extract IP since some Node servers don't populate it on the req object for WS
+                // Forcefully extract the best guess for the IP address
                 const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "127.0.0.1";
 
-                const decision = await wsArcjet.protect(req, { ip } as any);
+                // Call protect - Arcjet's Node SDK should now find the IP on req.ip
+                const decision = await (wsArcjet.protect as any)(req, { ip });
                 if (decision.isDenied()) {
                     let code = 1011; // Internal Error
                     let reason = "Access denied";

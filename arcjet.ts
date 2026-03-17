@@ -60,8 +60,8 @@ export function securityMiddleware() {
             // Forcefully extract the best guess for the IP address
             const ip = (req.headers["x-forwarded-for"] as string) || req.ip || req.socket.remoteAddress || "127.0.0.1";
 
-            // Pass the IP to Arcjet explicitly
-            const decision = await httpArcjet.protect(req, { ip } as any);
+            // Pass the IP to Arcjet explicitly and cast to any to fix lint
+            const decision = await (httpArcjet.protect as any)(req, { ip });
 
             console.log(`[HTTP Security] IP: ${ip} | Decision: ${decision.conclusion} | Reason: ${decision.reason.type}`);
 
