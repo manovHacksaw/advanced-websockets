@@ -64,7 +64,10 @@ export function attachWebSocketServer(server: Server) {
     const interval = setInterval(() => {
         wss.clients.forEach((ws) => {
             const extWs = ws as ExtWebSocket;
-            if (!extWs.isAlive) return ws.terminate();
+            if (!extWs.isAlive) {
+                ws.terminate();
+                return;
+            }
 
             extWs.isAlive = false;
             ws.ping();
