@@ -1,8 +1,9 @@
 import express, { Request, Response } from 'express';
 import { matchRouter } from './src/routes/matches';
 import { attachWebSocketServer } from './src/ws/server';
-import { securityMiddleware } from './arcjet'
+// import { securityMiddleware } from './arcjet'
 import http from 'http'
+import { commentaryRouter } from './src/routes/commentary';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -16,7 +17,7 @@ const server = http.createServer(app);
 // JSON Middleware
 app.use(express.json());
 
-app.use(securityMiddleware());
+// app.use(securityMiddleware());
 
 
 
@@ -26,9 +27,11 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 app.use("/matches", matchRouter);
+app.use("/matches/:matchId/commentary", commentaryRouter);
 
-const { broadcastMatchCreated } = attachWebSocketServer(server);
+const { broadcastMatchCreated, broadcastCommentary } = attachWebSocketServer(server);
 app.locals.broadcastMatchCreated = broadcastMatchCreated;
+app.locals.broadcastCommentary = broadcastCommentary;
 
 // Start the server
 server.listen(Number(PORT), HOST as string, () => {
