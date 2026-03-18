@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: goaldigger-api
+    runtime: node
+    buildCommand: npm install -g bun && bun install
+    startCommand: bun server.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
