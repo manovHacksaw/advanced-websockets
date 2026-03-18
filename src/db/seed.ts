@@ -2,154 +2,353 @@ import 'dotenv/config';
 import { db, pool } from './db';
 import { matches, commentary } from './schema';
 
-// ─── Teams ────────────────────────────────────────────────────────────────────
+// ─── Teams & Players ──────────────────────────────────────────────────────────
 
-const TEAMS: Record<string, string[]> = {
-  football: [
-    'Arsenal', 'Chelsea', 'Manchester City', 'Liverpool', 'Manchester United',
-    'Tottenham', 'Newcastle', 'Aston Villa', 'West Ham', 'Brighton',
-    'Real Madrid', 'Barcelona', 'Atletico Madrid', 'Sevilla', 'Valencia',
-    'Bayern Munich', 'Borussia Dortmund', 'RB Leipzig', 'Bayer Leverkusen', 'Wolfsburg',
-    'PSG', 'Marseille', 'Lyon', 'Monaco', 'Nice',
-    'Juventus', 'Inter Milan', 'AC Milan', 'Napoli', 'Roma',
-    'Ajax', 'Feyenoord', 'PSV', 'Benfica', 'Porto',
-    'Celtic', 'Rangers', 'Galatasaray', 'Fenerbahce', 'Besiktas',
-  ],
-  tennis: [
-    'Novak Djokovic', 'Carlos Alcaraz', 'Jannik Sinner', 'Daniil Medvedev',
-    'Rafael Nadal', 'Roger Federer', 'Andy Murray', 'Stan Wawrinka',
-    'Alexander Zverev', 'Stefanos Tsitsipas', 'Casper Ruud', 'Taylor Fritz',
-    'Holger Rune', 'Ben Shelton', 'Frances Tiafoe', 'Sebastian Korda',
-    'Iga Swiatek', 'Aryna Sabalenka', 'Coco Gauff', 'Elena Rybakina',
-    'Jessica Pegula', 'Madison Keys', 'Barbora Krejcikova', 'Qinwen Zheng',
-  ],
-  basketball: [
-    'LA Lakers', 'Golden State Warriors', 'Boston Celtics', 'Miami Heat',
-    'Milwaukee Bucks', 'Phoenix Suns', 'Denver Nuggets', 'Dallas Mavericks',
-    'Brooklyn Nets', 'Philadelphia 76ers', 'Chicago Bulls', 'Toronto Raptors',
-    'Atlanta Hawks', 'Cleveland Cavaliers', 'New York Knicks', 'Orlando Magic',
-    'Memphis Grizzlies', 'New Orleans Pelicans', 'Oklahoma City Thunder', 'Sacramento Kings',
-  ],
-  cricket: [
-    'India', 'Australia', 'England', 'Pakistan', 'South Africa',
-    'New Zealand', 'West Indies', 'Sri Lanka', 'Bangladesh', 'Afghanistan',
-    'Zimbabwe', 'Ireland', 'Scotland', 'Netherlands', 'UAE',
-    'Mumbai Indians', 'Chennai Super Kings', 'Royal Challengers Bangalore',
-    'Kolkata Knight Riders', 'Delhi Capitals', 'Sunrisers Hyderabad',
-    'Punjab Kings', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans',
-  ],
-  rugby: [
-    'New Zealand All Blacks', 'South Africa Springboks', 'England', 'Ireland',
-    'France', 'Australia Wallabies', 'Wales', 'Scotland',
-    'Argentina', 'Fiji', 'Samoa', 'Japan',
-  ],
-  baseball: [
-    'New York Yankees', 'LA Dodgers', 'Boston Red Sox', 'Chicago Cubs',
-    'Houston Astros', 'Atlanta Braves', 'San Francisco Giants', 'St. Louis Cardinals',
-    'Toronto Blue Jays', 'Seattle Mariners', 'Tampa Bay Rays', 'San Diego Padres',
-  ],
+const SPORT_DATA: Record<string, {
+  teams: string[];
+  players: string[];
+}> = {
+  football: {
+    teams: [
+      'Arsenal', 'Chelsea', 'Manchester City', 'Liverpool', 'Manchester United',
+      'Tottenham Hotspur', 'Newcastle United', 'Aston Villa', 'West Ham United', 'Brighton',
+      'Real Madrid', 'FC Barcelona', 'Atletico Madrid', 'Sevilla FC', 'Valencia CF',
+      'Bayern Munich', 'Borussia Dortmund', 'RB Leipzig', 'Bayer Leverkusen', 'Eintracht Frankfurt',
+      'Paris Saint-Germain', 'Olympique Marseille', 'Olympique Lyon', 'AS Monaco', 'OGC Nice',
+      'Juventus', 'Inter Milan', 'AC Milan', 'SSC Napoli', 'AS Roma',
+      'Ajax', 'Feyenoord', 'PSV Eindhoven', 'SL Benfica', 'FC Porto',
+      'Celtic FC', 'Rangers FC', 'Galatasaray', 'Fenerbahce', 'Besiktas',
+      'Club Brugge', 'Anderlecht', 'Red Star Belgrade', 'Shakhtar Donetsk', 'Dinamo Zagreb',
+    ],
+    players: [
+      'Bukayo Saka', 'Erling Haaland', 'Mohamed Salah', 'Kevin De Bruyne', 'Kylian Mbappé',
+      'Vinicius Jr', 'Jude Bellingham', 'Phil Foden', 'Rodri', 'Toni Kroos',
+      'Robert Lewandowski', 'Harry Kane', 'Lautaro Martinez', 'Romelu Lukaku', 'Antoine Griezmann',
+      'Bernardo Silva', 'Bruno Fernandes', 'Marcus Rashford', 'Son Heung-min', 'Sadio Mané',
+      'Leandro Trossard', 'Martin Ødegaard', 'Declan Rice', 'Gabriel Magalhães', 'William Saliba',
+      'Vinícius Júnior', 'Pedri', 'Gavi', 'Ousmane Dembélé', 'Raphinha',
+      'Federico Valverde', 'Eduardo Camavinga', 'Aurélien Tchouaméni', 'Éder Militão', 'Dani Carvajal',
+      'Jamal Musiala', 'Florian Wirtz', 'Granit Xhaka', 'Granit Xhaka', 'Joshua Kimmich',
+      'Thomas Müller', 'Leon Goretzka', 'Kingsley Coman', 'Serge Gnabry', 'Leroy Sané',
+    ],
+  },
+  tennis: {
+    teams: [
+      'Novak Djokovic', 'Carlos Alcaraz', 'Jannik Sinner', 'Daniil Medvedev',
+      'Alexander Zverev', 'Andrey Rublev', 'Casper Ruud', 'Stefanos Tsitsipas',
+      'Taylor Fritz', 'Holger Rune', 'Ben Shelton', 'Frances Tiafoe',
+      'Sebastian Korda', 'Tommy Paul', 'Felix Auger-Aliassime', 'Hubert Hurkacz',
+      'Grigor Dimitrov', 'Karen Khachanov', 'Nicolas Jarry', 'Alejandro Davidovich Fokina',
+      'Iga Swiatek', 'Aryna Sabalenka', 'Coco Gauff', 'Elena Rybakina',
+      'Jessica Pegula', 'Madison Keys', 'Barbora Krejcikova', 'Qinwen Zheng',
+      'Mirra Andreeva', 'Emma Navarro', 'Jasmine Paolini', 'Liudmila Samsonova',
+    ],
+    players: [
+      'Novak Djokovic', 'Carlos Alcaraz', 'Jannik Sinner', 'Daniil Medvedev',
+      'Alexander Zverev', 'Casper Ruud', 'Stefanos Tsitsipas', 'Taylor Fritz',
+      'Iga Swiatek', 'Aryna Sabalenka', 'Coco Gauff', 'Elena Rybakina',
+    ],
+  },
+  basketball: {
+    teams: [
+      'LA Lakers', 'Golden State Warriors', 'Boston Celtics', 'Miami Heat',
+      'Milwaukee Bucks', 'Phoenix Suns', 'Denver Nuggets', 'Dallas Mavericks',
+      'Brooklyn Nets', 'Philadelphia 76ers', 'Chicago Bulls', 'Toronto Raptors',
+      'Atlanta Hawks', 'Cleveland Cavaliers', 'New York Knicks', 'Orlando Magic',
+      'Memphis Grizzlies', 'New Orleans Pelicans', 'Oklahoma City Thunder', 'Sacramento Kings',
+      'Minnesota Timberwolves', 'Indiana Pacers', 'Detroit Pistons', 'Washington Wizards',
+    ],
+    players: [
+      'LeBron James', 'Stephen Curry', 'Kevin Durant', 'Giannis Antetokounmpo', 'Luka Dončić',
+      'Jayson Tatum', 'Joel Embiid', 'Nikola Jokić', 'Damian Lillard', 'Jimmy Butler',
+      'Devin Booker', 'Jaylen Brown', 'Donovan Mitchell', 'Trae Young', 'Zion Williamson',
+      'Anthony Davis', 'Bam Adebayo', 'Ja Morant', 'SGA Gilgeous-Alexander', 'De\'Aaron Fox',
+      'Karl-Anthony Towns', 'Tyrese Haliburton', 'Paolo Banchero', 'Victor Wembanyama',
+    ],
+  },
+  cricket: {
+    teams: [
+      'India', 'Australia', 'England', 'Pakistan', 'South Africa',
+      'New Zealand', 'West Indies', 'Sri Lanka', 'Bangladesh', 'Afghanistan',
+      'Zimbabwe', 'Ireland', 'Scotland', 'Netherlands', 'UAE',
+      'Mumbai Indians', 'Chennai Super Kings', 'Royal Challengers Bangalore',
+      'Kolkata Knight Riders', 'Delhi Capitals', 'Sunrisers Hyderabad',
+      'Punjab Kings', 'Rajasthan Royals', 'Lucknow Super Giants', 'Gujarat Titans',
+    ],
+    players: [
+      'Virat Kohli', 'Rohit Sharma', 'Steve Smith', 'Joe Root', 'Babar Azam',
+      'Kane Williamson', 'David Warner', 'Ben Stokes', 'Jasprit Bumrah', 'Pat Cummins',
+      'Mitchell Starc', 'James Anderson', 'Kagiso Rabada', 'Rashid Khan', 'Shaheen Afridi',
+      'Shubman Gill', 'Yashasvi Jaiswal', 'Travis Head', 'Harry Brook', 'Fakhar Zaman',
+      'Rishabh Pant', 'Jos Buttler', 'Quinton de Kock', 'Nicholas Pooran', 'Suryakumar Yadav',
+    ],
+  },
+  rugby: {
+    teams: [
+      'New Zealand All Blacks', 'South Africa Springboks', 'England', 'Ireland',
+      'France', 'Australia Wallabies', 'Wales', 'Scotland',
+      'Argentina Los Pumas', 'Fiji', 'Samoa', 'Japan Brave Blossoms',
+      'Leinster', 'Munster', 'Ulster', 'Connacht',
+      'Toulouse', 'La Rochelle', 'Bordeaux-Bègleset', 'Clermont',
+    ],
+    players: [
+      'Antoine Dupont', 'Richie Mo\'unga', 'Beauden Barrett', 'Handré Pollard', 'Maro Itoje',
+      'Tadhg Furlong', 'Ardie Savea', 'Sam Cane', 'Cheslin Kolbe', 'Damian de Allende',
+      'Marcus Smith', 'Jonny May', 'Courtney Lawes', 'Tom Curry', 'Ellis Genge',
+    ],
+  },
+  baseball: {
+    teams: [
+      'New York Yankees', 'LA Dodgers', 'Boston Red Sox', 'Chicago Cubs',
+      'Houston Astros', 'Atlanta Braves', 'San Francisco Giants', 'St. Louis Cardinals',
+      'Toronto Blue Jays', 'Seattle Mariners', 'Tampa Bay Rays', 'San Diego Padres',
+      'New York Mets', 'Philadelphia Phillies', 'Milwaukee Brewers', 'Minnesota Twins',
+      'Baltimore Orioles', 'Pittsburgh Pirates', 'Cincinnati Reds', 'Detroit Tigers',
+    ],
+    players: [
+      'Shohei Ohtani', 'Aaron Judge', 'Mookie Betts', 'Freddie Freeman', 'Ronald Acuña Jr',
+      'Vladimir Guerrero Jr', 'Bo Bichette', 'Julio Rodríguez', 'Kyle Tucker', 'Yordan Alvarez',
+      'Juan Soto', 'Trea Turner', 'Nolan Arenado', 'Paul Goldschmidt', 'Pete Alonso',
+    ],
+  },
 };
 
 // ─── Commentary templates ──────────────────────────────────────────────────────
 
-const COMMENTARY: Record<string, Array<{ eventType: string; templates: string[]; actor?: boolean; team?: boolean }>> = {
-  football: [
-    { eventType: 'kickoff',      templates: ['Kick off! {home} get us underway.', 'We are underway! {away} kick off.', 'The referee blows the whistle — we are off!'] },
-    { eventType: 'goal',         actor: true, team: true, templates: [
-      'GOAL! {actor} fires it into the back of the net! What a strike!',
-      'GOAL! {actor} with a clinical finish. {team} take the lead!',
-      'GOAL! Brilliant work from {actor} — {team} are ahead!',
-      '{actor} SCORES! Unstoppable effort from the {team} forward!',
-      'GOLAZO! {actor} with an absolutely stunning goal for {team}!',
-    ]},
-    { eventType: 'yellow_card',  actor: true, team: true, templates: [
-      'Yellow card for {actor} after a reckless challenge.',
-      '{actor} is booked. The referee had no hesitation.',
-      'Caution for {actor} of {team}. They will need to be careful.',
-    ]},
-    { eventType: 'red_card',     actor: true, team: true, templates: [
-      'RED CARD! {actor} is sent off! {team} are down to ten men!',
-      'Off he goes! {actor} receives a straight red. Terrible challenge.',
-      'RED CARD! {actor} lunges in two-footed. {team} in serious trouble now.',
-    ]},
-    { eventType: 'substitution', actor: true, team: true, templates: [
-      'Substitution: {actor} comes on for {team}.',
-      '{team} make a change — {actor} is introduced.',
-      'Fresh legs for {team} as {actor} enters the fray.',
-    ]},
-    { eventType: 'var',          templates: ['VAR check underway for a possible offside.', 'The referee consults the VAR. The crowd holds its breath.', 'Video review in progress — the goal is being checked.'] },
-    { eventType: 'offside',      templates: ['Offside! The flag goes up.', 'No goal — tight offside call after the VAR review.', 'Ruled out for offside. Agonising for the attacking side.'] },
-    { eventType: 'penalty',      actor: true, team: true, templates: [
-      'PENALTY! {actor} steps up for {team}.',
-      'Spot kick awarded to {team}! {actor} will take it.',
-    ]},
-    { eventType: 'halftime',     templates: ['Half time! What a 45 minutes of action.', 'The referee brings the first half to a close.', 'Half time. Both teams head to the tunnel.'] },
-    { eventType: 'fulltime',     templates: ['Full time! What a match that was.', 'The final whistle blows. An incredible game of football.', 'Full time. The players embrace at the final whistle.'] },
-    { eventType: 'foul',         actor: true, templates: ['Foul by {actor}. Free kick awarded.', '{actor} brings down his man. Free kick to the opposition.'] },
-    { eventType: 'injury',       actor: true, templates: ['{actor} is down holding his leg. Medical staff rush on.', 'There are concerns for {actor} — they look in some discomfort.'] },
-  ],
-  tennis: [
-    { eventType: 'kickoff',      templates: ['{home} serves first. Match underway!', 'The umpire calls play — we are off!'] },
-    { eventType: 'ace',          actor: true, templates: ['ACE! {actor} fires down an unreturnable serve!', 'ACE! {actor} with a booming delivery — no chance for the returner!'] },
-    { eventType: 'double_fault', actor: true, templates: ['Double fault from {actor}. Gift of a point.', '{actor} sends the second serve long. Double fault.'] },
-    { eventType: 'break_point',  actor: true, templates: ['BREAK! {actor} converts the break point with a stunning winner!', 'Break of serve! {actor} takes full advantage.'] },
-    { eventType: 'fulltime',     templates: ['Set over! A thrilling set of tennis.', 'That set goes to the baseline grinder.'] },
-    { eventType: 'injury',       actor: true, templates: ['{actor} calls for the trainer. A concerning moment.'] },
-  ],
-  basketball: [
-    { eventType: 'kickoff',    templates: ['Tip-off! We are underway at the arena.', 'The ball is in the air — tip-off!'] },
-    { eventType: 'goal',       actor: true, team: true, templates: [
-      '{actor} with the mid-range jumper! {team} extend their lead.',
-      'Three pointer! {actor} from downtown — {team} fans go wild!',
-      '{actor} drives baseline and lays it in. {team} on a run!',
-      'And one! {actor} draws the foul and completes the play for {team}.',
-      '{actor} with the slam dunk! {team} dominating the paint.',
-    ]},
-    { eventType: 'foul',       actor: true, templates: ['Foul on {actor}. Free throws incoming.', 'Personal foul called on {actor}.'] },
-    { eventType: 'substitution', actor: true, team: true, templates: ['{actor} checks in for {team}. Coach making a tactical move.'] },
-    { eventType: 'fulltime',   templates: ['Buzzer sounds! Final quarter done.', 'Game over! What a contest that was.'] },
-  ],
-  cricket: [
-    { eventType: 'kickoff',    templates: ['{home} win the toss and elect to bat.', '{away} win the toss and choose to field.'] },
-    { eventType: 'wicket',     actor: true, team: true, templates: [
-      'WICKET! {actor} bowls the batter out! {team} strike!',
-      'WICKET! Caught behind! {actor} celebrates for {team}!',
-      'OUT! LBW! {actor} with the breakthrough for {team}!',
-      'WICKET! {actor} takes a stunning catch at slip! {team} on fire!',
-    ]},
-    { eventType: 'boundary',   actor: true, templates: [
-      'FOUR! {actor} drives through the covers magnificently!',
-      'FOUR! {actor} pulls off his hip — beautiful timing.',
-      'FOUR! {actor} cuts hard through point. Brilliant shot!',
-    ]},
-    { eventType: 'six',        actor: true, templates: [
-      'SIX! {actor} launches it over long-on! The crowd erupts!',
-      'SIX! {actor} goes downtown over mid-wicket. Enormous hit!',
-      'MAXIMUM! {actor} sends it into the upper tier!',
-    ]},
-    { eventType: 'fulltime',   templates: ['Innings over! What a partnership we witnessed.', 'End of the over. Drinks are on the field.'] },
-  ],
-  rugby: [
-    { eventType: 'kickoff',    templates: ['Kick off! {home} get us started.'] },
-    { eventType: 'goal',       actor: true, team: true, templates: [
-      'TRY! {actor} crashes over the line for {team}!',
+const TEMPLATES: Record<string, Record<string, string[]>> = {
+  football: {
+    kickoff: [
+      'The referee blows the whistle and {home} get us underway at a packed stadium!',
+      '{away} kick off — this highly anticipated clash is finally underway!',
+      'We are off and running! The atmosphere here is absolutely electric.',
+      'Kick off! Both sides have been waiting for this moment all week.',
+      'The match is under way — {home} pressing high from the first whistle.',
+    ],
+    goal: [
+      'GOAL! {actor} finds the net with a stunning finish! {team} take the lead!',
+      'GOAL! What a strike from {actor}! The goalkeeper had absolutely no chance!',
+      'GOAL! {actor} is clinical! {team} are ahead and the place goes wild!',
+      '{actor} SCORES! A brilliant individual effort puts {team} in front!',
+      'GOLAZO! {actor} with an unstoppable effort from outside the box for {team}!',
+      'GOAL! {actor} taps in from close range — {team} are in dreamland!',
+      'GOAL! {actor} heads it home from the corner! {team} edge ahead!',
+      'GOAL! A cool, composed finish from {actor}. {team} look dangerous today.',
+      "GOAL! {actor} cuts inside and curls it into the far corner. Goalkeeper didn't move!",
+      'GOAL! {actor} reacts quickest to the rebound and buries it! {team} ahead!',
+    ],
+    yellow_card: [
+      'Yellow card for {actor} after a reckless lunge. They will need to be careful.',
+      '{actor} is booked. The referee had no hesitation whatsoever.',
+      'Caution shown to {actor} of {team}. Another one and they are off.',
+      'The referee reaches for the yellow card — {actor} picks up a booking.',
+      '{actor} looks furious with the decision but the yellow card stands.',
+    ],
+    red_card: [
+      'RED CARD! {actor} is sent off! A dreadful challenge — {team} are down to ten men!',
+      'OFF HE GOES! {actor} receives a straight red for a two-footed lunge. Terrible decision.',
+      'RED CARD! {actor} lunges in dangerously and the referee does not hesitate.',
+      "He's gone! {actor} can have no complaints — that was dangerous play.",
+      'RED CARD! {team} in big trouble now. {actor} walks after a moment of madness.',
+    ],
+    substitution: [
+      'Substitution: {actor} is introduced by {team}. Tactical change from the manager.',
+      '{team} make a change — {actor} comes on to freshen things up.',
+      'Fresh legs for {team} as {actor} enters the pitch.',
+      '{actor} is on. {team} looking to change the dynamics of this match.',
+      'The board is up — {actor} replaces the starter for {team}.',
+    ],
+    var: [
+      'The referee is consulting the VAR monitor. The crowd anxiously waits.',
+      'VAR check underway. The stadium has gone quiet as we wait for the decision.',
+      'Video review in progress — the goal is being checked for offside.',
+      'Play is stopped as VAR reviews a potential handball in the build-up.',
+      "The VAR is checking — this could be crucial to the game's outcome.",
+    ],
+    penalty: [
+      'PENALTY! {actor} steps up for {team} — this is a massive moment.',
+      'Spot kick awarded! {actor} places the ball on the spot for {team}.',
+      'PENALTY! The referee points to the spot. {actor} will take responsibility.',
+    ],
+    halftime: [
+      'The referee brings the first half to a close. What a 45 minutes of action!',
+      'Half time! Both teams head to the dressing room with plenty to think about.',
+      'Half-time whistle! An enthralling first half draws to a close.',
+      "That's half time. The manager will have strong words to say in the break.",
+    ],
+    fulltime: [
+      'FULL TIME! What a match that was — the crowd are on their feet!',
+      'The final whistle blows. An absolutely extraordinary game of football.',
+      'Full time. Both sets of fans applaud their sides off the pitch.',
+      'That is that! Full time here — a result that will be talked about for days.',
+    ],
+    foul: [
+      'Foul! {actor} brings down his man and the referee immediately blows his whistle.',
+      'Free kick awarded against {actor}. Poor challenge in a dangerous area.',
+      '{actor} clips the heels of the attacker. The referee is not happy.',
+    ],
+    injury: [
+      '{actor} is down on the turf holding their leg. Physio runs on.',
+      'Concern for {actor} — they took a heavy knock and look to be in pain.',
+      'Play is stopped as {actor} receives treatment on the pitch.',
+    ],
+    offside: [
+      'Offside! The flag goes up — no goal.',
+      'Ruled out for offside after the VAR check. Wafer-thin margins.',
+      'The assistant referee had their flag up immediately. Offside called.',
+    ],
+  },
+  tennis: {
+    kickoff: [
+      '{home} wins the toss and elects to serve first. Here we go!',
+      'The umpire calls play — {away} to serve first in this highly anticipated clash.',
+      'Players take their positions. The crowd settles in for what promises to be a classic.',
+    ],
+    ace: [
+      'ACE! {actor} fires down an unreturnable serve — no chance for the returner!',
+      'ACE! {actor} clocks the serve at over 200km/h — absolutely stunning.',
+      'ACE! Right down the T — {actor} wins the point without breaking a sweat.',
+      '{actor} with yet another ace! The serve today has been a weapon all match.',
+      'ACE! {actor} goes out wide and the returner is completely wrong-footed.',
+    ],
+    double_fault: [
+      'Double fault from {actor}. A gift of a point to the opponent.',
+      '{actor} sends the second serve long — double fault. Frustrating moment.',
+      'Double fault! {actor} slams their racket in frustration after the error.',
+    ],
+    break_point: [
+      'BREAK! {actor} converts the break point with a stunning cross-court winner!',
+      'Break of serve! {actor} takes full advantage with brilliant returning.',
+      "BREAK! {actor} is absolutely clinical — this is a crucial moment in the match!",
+      '{actor} breaks serve! The crowd erupts at this pivotal swing in momentum.',
+    ],
+    fulltime: [
+      'Set over! {actor} takes it with some brilliant tennis.',
+      'Set completed — a fascinating battle of wills throughout.',
+      'That set belongs to {actor} after an incredible display.',
+    ],
+  },
+  basketball: {
+    kickoff: [
+      'Tip-off! We are underway — both teams ready for battle.',
+      'The ball is in the air and the game is on! Huge crowd here tonight.',
+      'Jump ball! {home} get the tip and we are off and running.',
+    ],
+    goal: [
+      'THREE POINTER! {actor} from way downtown — {team} extend their lead!',
+      '{actor} drives baseline and lays it in off the glass for {team}!',
+      'AND ONE! {actor} draws the foul and completes the play for {team}!',
+      'SLAM DUNK! {actor} throws it down with authority — {team} are on fire!',
+      '{actor} with the mid-range pull-up — cold-blooded from {team}!',
+      'ALLEY-OOP! {actor} rises and finishes above the rim for {team}!',
+      '{actor} hits the step-back three! Unguardable shot for {team}!',
+      'Layup from {actor} — {team} working the pick and roll to perfection!',
+      '{actor} knocks it down from the logo! Unbelievable range for {team}!',
+    ],
+    foul: [
+      'Foul on {actor}. Two free throws coming up.',
+      'Personal foul called on {actor} — headed to the line.',
+      '{actor} picks up their third foul. Coach may look to bench them.',
+    ],
+    substitution: [
+      '{actor} checks in for {team}. Coach making a strategic move.',
+      'Fresh legs — {actor} is into the game for {team}.',
+    ],
+    fulltime: [
+      'Buzzer sounds! End of the quarter — close game here tonight.',
+      'Game over! The buzzer brings this incredible contest to an end.',
+      "That's the quarter — both coaches will have plenty to work on.",
+    ],
+  },
+  cricket: {
+    kickoff: [
+      '{home} win the toss and elect to bat first under clear skies.',
+      '{away} win the toss and put {home} in to bat. Interesting decision.',
+      'The toss has been made. Players take the field — conditions look excellent.',
+    ],
+    wicket: [
+      'WICKET! {actor} bowls the batter with a perfect delivery — {team} celebrate wildly!',
+      'WICKET! Caught behind! {actor} gets the breakthrough — {team} right back in this!',
+      'OUT! LBW! {actor} gets one to nip back and the umpire raises the finger!',
+      'WICKET! Caught at slip! A brilliant take to give {actor} their wicket!',
+      'WICKET! {actor} takes a screamer in the deep — what a catch! {team} on top!',
+      "OUT! {actor} bowls a magnificent leg cutter — the batter's stumps shattered!",
+      'WICKET! Run out! Brilliant fielding — {actor} with a direct hit at the stumps!',
+    ],
+    boundary: [
+      'FOUR! {actor} drives beautifully through the covers — exquisite timing!',
+      'FOUR! {actor} pulls hard off the hip — streaks to the boundary!',
+      'FOUR! {actor} cuts hard through point — the fielder had no chance!',
+      'FOUR! {actor} flicks it off the pads and it races away!',
+      'FOUR! Edged through the vacant slip cordon — {actor} gets lucky but takes it!',
+    ],
+    six: [
+      'SIX! {actor} launches it into the stands over long-on! Enormous hit!',
+      'SIX! {actor} steps down the track and lofts it over mid-off — stunning!',
+      'MAXIMUM! {actor} connects sweetly and it sails into the upper tier!',
+      'SIX! {actor} flat-bats it over extra cover — one of the shots of the day!',
+      "SIX! That's gone a mile! {actor} with tremendous power over midwicket!",
+    ],
+    fulltime: [
+      'End of the over. The field is set for the next bowler.',
+      'Drinks break on the field. Both sides take a moment to regroup.',
+      'End of innings! A superb batting performance concluded.',
+    ],
+  },
+  rugby: {
+    kickoff: [
+      'Kick off! {home} start this fierce encounter with real intent.',
+      'We are underway! Both packs setting the tone early.',
+      "The referee blows — here we go! Huge crowd for tonight's fixture.",
+    ],
+    goal: [
+      'TRY! {actor} crashes over the line for {team} — the place erupts!',
       'TRY! {actor} dives over in the corner for {team}! Magnificent score!',
-    ]},
-    { eventType: 'yellow_card', actor: true, templates: ['{actor} is sin-binned. Ten minutes in the bin.'] },
-    { eventType: 'red_card',   actor: true, templates: ['RED CARD! {actor} is dismissed for dangerous play!'] },
-    { eventType: 'penalty',    actor: true, team: true, templates: ['{actor} steps up and slots the penalty for {team}.'] },
-    { eventType: 'halftime',   templates: ['Half time whistle! Both teams head in.'] },
-    { eventType: 'fulltime',   templates: ['Full time! What a game of rugby.'] },
-  ],
-  baseball: [
-    { eventType: 'kickoff',    templates: ['Play ball! {home} take the field.'] },
-    { eventType: 'goal',       actor: true, team: true, templates: [
-      'HOME RUN! {actor} sends it over the fence for {team}!',
-      'RBI single from {actor}! {team} get on the board.',
-      'Double play! {team} get out of the inning cleanly.',
-    ]},
-    { eventType: 'fulltime',   templates: ['Inning over. Three up, three down.', 'End of the inning — scoreboard check time.'] },
-  ],
+      'TRY! {actor} powers through three defenders to touch down for {team}!',
+      'TRY! Brilliant team move and {actor} dots it down under the posts for {team}!',
+    ],
+    penalty: [
+      '{actor} steps up and slots the penalty for {team} from 40 metres.',
+      'Three points on the board — {actor} is reliable under the posts for {team}.',
+    ],
+    yellow_card: [
+      '{actor} is sin-binned. Ten minutes in the bin after a deliberate infringement.',
+      'Yellow card! {actor} is lucky not to see red — {team} down to 14 men.',
+    ],
+    red_card: [
+      'RED CARD! {actor} is dismissed for dangerous play! {team} in crisis!',
+      'Off! {actor} receives a straight red — no argument from the player.',
+    ],
+    halftime: [
+      'Half time whistle. Tight game so far — could go either way.',
+      "That's half time. Plenty for both coaches to work on during the break.",
+    ],
+    fulltime: [
+      'Final whistle! What a contest — rugby at its finest.',
+      'Full time! Both sides gave everything — this is what the sport is about.',
+    ],
+  },
+  baseball: {
+    kickoff: [
+      'Play ball! {home} take the field — game time!',
+      "The umpire calls 'Play' and we are underway here at the stadium.",
+    ],
+    goal: [
+      'HOME RUN! {actor} absolutely crushes it — that ball is still going!',
+      'RBI single from {actor}! {team} get on the board with a timely hit.',
+      '{actor} with a seeing-eye single through the gap! Runners on the move for {team}!',
+      'GRAND SLAM! {actor} with the bases loaded — {team} fans lose their minds!',
+      '{actor} sends it the other way — doubles off the wall for {team}!',
+    ],
+    foul: [
+      'Foul ball! {actor} fouls one back — still alive in the at-bat.',
+      '{actor} hooks it foul — no good.',
+    ],
+    fulltime: [
+      'Three up, three down. The pitcher is dealing today.',
+      'End of the inning. Scoreboard check time.',
+      'Change of innings — {team} look to respond with the bat.',
+    ],
+  },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -158,7 +357,7 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function rand(min: number, max: number) {
+function rand(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -166,170 +365,224 @@ function hoursFromNow(hours: number): Date {
   return new Date(Date.now() + hours * 3600 * 1000);
 }
 
-function fillTemplate(template: string, vars: Record<string, string>): string {
-  return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? k);
+function fillTemplate(tpl: string, vars: Record<string, string>): string {
+  return tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? k);
 }
 
-function generateCommentaryForMatch(
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** Generate unique matchups within a sport — no team appears twice per batch */
+function uniquePairs(teams: string[], count: number): [string, string][] {
+  const pairs: [string, string][] = [];
+  const shuffled = shuffle(teams);
+
+  for (let i = 0; i + 1 < shuffled.length && pairs.length < count; i += 2) {
+    pairs.push([shuffled[i], shuffled[i + 1]]);
+  }
+
+  // If we need more pairs, reshuffle and generate again with different combos
+  while (pairs.length < count) {
+    const extra = shuffle(teams);
+    for (let i = 0; i + 1 < extra.length && pairs.length < count; i += 2) {
+      // Ensure this exact pair hasn't been used
+      const [a, b] = [extra[i], extra[i + 1]];
+      if (!pairs.some(([h, aw]) => (h === a && aw === b) || (h === b && aw === a))) {
+        pairs.push([a, b]);
+      }
+    }
+  }
+  return pairs.slice(0, count);
+}
+
+// ─── Match generator ──────────────────────────────────────────────────────────
+
+function generateMatches(total: number) {
+  const sports = Object.keys(SPORT_DATA);
+  const perSport = Math.ceil(total / sports.length);
+  const result: Array<{
+    sport: string; homeTeam: string; awayTeam: string;
+    status: 'live' | 'finished' | 'scheduled';
+    startTime: Date; endTime?: Date;
+    homeScore: number; awayScore: number;
+  }> = [];
+
+  for (const sport of sports) {
+    const teams = SPORT_DATA[sport].teams;
+    const pairs = uniquePairs(teams, perSport);
+
+    for (const [homeTeam, awayTeam] of pairs) {
+      // Jitter start time uniquely per match using a random offset in minutes
+      const minuteJitter = rand(-90, 90);
+      const roll = Math.random();
+      let status: 'live' | 'finished' | 'scheduled';
+      let startTime: Date;
+      let endTime: Date | undefined;
+      let homeScore = 0;
+      let awayScore = 0;
+
+      if (roll < 0.28) {
+        status = 'live';
+        startTime = hoursFromNow(-(rand(0, 1) + minuteJitter / 60));
+        const isBball = sport === 'basketball';
+        const isCricket = sport === 'cricket';
+        homeScore = isBball ? rand(50, 110) : isCricket ? rand(60, 320) : rand(0, 5);
+        awayScore = isBball ? rand(50, 110) : isCricket ? rand(60, 320) : rand(0, 5);
+      } else if (roll < 0.60) {
+        status = 'finished';
+        startTime = hoursFromNow(-(rand(2, 72) + minuteJitter / 60));
+        endTime = new Date(startTime.getTime() + rand(85, 130) * 60 * 1000);
+        const isBball = sport === 'basketball';
+        const isCricket = sport === 'cricket';
+        homeScore = isBball ? rand(85, 135) : isCricket ? rand(120, 380) : rand(0, 7);
+        awayScore = isBball ? rand(85, 135) : isCricket ? rand(120, 380) : rand(0, 7);
+      } else {
+        status = 'scheduled';
+        startTime = hoursFromNow(rand(1, 96) + minuteJitter / 60);
+      }
+
+      result.push({ sport, homeTeam, awayTeam, status, startTime, endTime, homeScore, awayScore });
+
+      if (result.length >= total) break;
+    }
+
+    if (result.length >= total) break;
+  }
+
+  return shuffle(result).slice(0, total);
+}
+
+// ─── Commentary generator ─────────────────────────────────────────────────────
+
+function generateCommentary(
   matchId: number,
   sport: string,
   homeTeam: string,
   awayTeam: string,
   status: string,
-  count: number
+  count: number,
 ) {
-  const templates = COMMENTARY[sport] ?? COMMENTARY.football;
-  const rows = [];
+  const tpls = TEMPLATES[sport] ?? TEMPLATES.football;
+  const players = shuffle(SPORT_DATA[sport]?.players ?? SPORT_DATA.football.players);
+  const allEvents = Object.keys(tpls).filter(e => e !== 'kickoff' && e !== 'fulltime');
 
-  // Always start with kickoff
-  const kickoff = templates.find(t => t.eventType === 'kickoff');
-  if (kickoff) {
+  const periods: Record<string, string[]> = {
+    football:   ['first_half', 'first_half', 'second_half', 'second_half', 'extra_time'],
+    basketball: ['q1', 'q2', 'q3', 'q4'],
+    cricket:    ['innings_1', 'innings_1', 'innings_1', 'innings_2', 'innings_2'],
+    tennis:     ['set_1', 'set_2', 'set_3'],
+    rugby:      ['first_half', 'second_half'],
+    baseball:   ['inning_1','inning_2','inning_3','inning_4','inning_5','inning_6','inning_7','inning_8','inning_9'],
+  };
+
+  const maxMinute: Record<string, number> = {
+    football: 95, basketball: 48, cricket: 100, tennis: 90, rugby: 80, baseball: 54,
+  };
+
+  const rows: Array<{
+    matchId: number; minute: number; sequence: number; period: string;
+    eventType: string; actor?: string; team?: string; message: string;
+  }> = [];
+
+  // Kickoff
+  const kickoffTpls = tpls.kickoff;
+  if (kickoffTpls) {
     rows.push({
-      matchId,
-      minute: 1,
-      sequence: 0,
-      period: sport === 'cricket' ? 'innings_1' : sport === 'tennis' ? 'set_1' : 'first_half',
+      matchId, minute: 1, sequence: 0,
+      period: (periods[sport] ?? ['first_half'])[0],
       eventType: 'kickoff',
-      message: fillTemplate(pick(kickoff.templates), { home: homeTeam, away: awayTeam }),
+      message: fillTemplate(pick(kickoffTpls), { home: homeTeam, away: awayTeam }),
     });
   }
 
-  // Random events
+  // Spread used templates to avoid repetition within the same match
+  const usedTemplates = new Set<string>();
+
   for (let i = 1; i < count; i++) {
-    const tpl = pick(templates.filter(t => t.eventType !== 'kickoff'));
+    const eventType = pick(allEvents);
+    const eventTpls = tpls[eventType] ?? [];
+    if (eventTpls.length === 0) continue;
+
+    // Pick a template not recently used
+    let chosenTpl = pick(eventTpls);
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const candidate = pick(eventTpls);
+      if (!usedTemplates.has(candidate)) { chosenTpl = candidate; break; }
+    }
+    usedTemplates.add(chosenTpl);
+    if (usedTemplates.size > 20) usedTemplates.clear(); // Reset to allow reuse
+
+    const actor = players[i % players.length];
     const team = pick([homeTeam, awayTeam]);
-
-    // Pick actor from a plausible name pool
-    const actors: Record<string, string[]> = {
-      football: ['Silva', 'Müller', 'Benzema', 'Salah', 'De Bruyne', 'Mbappé', 'Haaland', 'Kane', 'Saka', 'Mané', 'Grealish', 'Mount'],
-      tennis: ['the server', 'the returner', 'the baseline player'],
-      basketball: ['Johnson', 'Williams', 'Davis', 'Thompson', 'Mitchell', 'Curry', 'James', 'Durant', 'Irving', 'Tatum'],
-      cricket: ['Kohli', 'Smith', 'Root', 'Babar', 'de Kock', 'Bumrah', 'Starc', 'Anderson', 'Rabada', 'Rashid'],
-      rugby: ['Jones', 'Smith', 'du Preez', 'Itoje', 'Dupont', 'Barrett', 'Kolisi'],
-      baseball: ['Rodriguez', 'Johnson', 'Williams', 'Martinez', 'Garcia', 'Ohtani', 'Judge'],
-    };
-
-    const actor = pick(actors[sport] ?? actors.football);
-    const maxMinute = sport === 'basketball' ? 48 : sport === 'cricket' ? 100 : sport === 'tennis' ? 90 : 90;
-    const minute = rand(2, maxMinute);
-
-    const periods: Record<string, string[]> = {
-      football: ['first_half', 'first_half', 'first_half', 'second_half', 'second_half', 'second_half', 'extra_time'],
-      basketball: ['q1', 'q2', 'q3', 'q4'],
-      cricket: ['innings_1', 'innings_1', 'innings_2'],
-      tennis: ['set_1', 'set_2', 'set_3'],
-      rugby: ['first_half', 'second_half'],
-      baseball: ['inning_1', 'inning_2', 'inning_3', 'inning_4', 'inning_5', 'inning_6', 'inning_7', 'inning_8', 'inning_9'],
-    };
-    const period = pick(periods[sport] ?? periods.football);
+    const minute = rand(2, maxMinute[sport] ?? 90);
+    const period = pick(periods[sport] ?? ['first_half']);
 
     rows.push({
-      matchId,
-      minute,
-      sequence: i,
-      period,
-      eventType: tpl.eventType,
-      actor: tpl.actor ? actor : undefined,
-      team: tpl.team ? team : undefined,
-      message: fillTemplate(pick(tpl.templates), { actor, team, home: homeTeam, away: awayTeam }),
+      matchId, minute, sequence: i, period, eventType,
+      actor: chosenTpl.includes('{actor}') ? actor : undefined,
+      team:  chosenTpl.includes('{team}')  ? team  : undefined,
+      message: fillTemplate(chosenTpl, { actor, team, home: homeTeam, away: awayTeam }),
     });
   }
 
-  // End with fulltime for finished matches
-  if (status === 'finished') {
-    const ft = templates.find(t => t.eventType === 'fulltime');
-    if (ft) {
-      rows.push({
-        matchId,
-        minute: sport === 'basketball' ? 48 : sport === 'cricket' ? 100 : 90,
-        sequence: count,
-        period: sport === 'basketball' ? 'q4' : sport === 'cricket' ? 'innings_2' : 'second_half',
-        eventType: 'fulltime',
-        message: pick(ft.templates),
-      });
-    }
+  // Fulltime for finished matches
+  if (status === 'finished' && tpls.fulltime) {
+    rows.push({
+      matchId,
+      minute: maxMinute[sport] ?? 90,
+      sequence: count,
+      period: (periods[sport] ?? ['second_half']).at(-1)!,
+      eventType: 'fulltime',
+      message: fillTemplate(pick(tpls.fulltime), { home: homeTeam, away: awayTeam }),
+    });
   }
 
   return rows;
 }
 
-function generateMatches(count: number) {
-  const sports = Object.keys(TEAMS);
-  const result = [];
+// ─── Seed ─────────────────────────────────────────────────────────────────────
 
-  for (let i = 0; i < count; i++) {
-    const sport = pick(sports);
-    const teams = [...TEAMS[sport]];
-    const homeIdx = rand(0, teams.length - 1);
-    teams.splice(homeIdx, 1);
-    const homeTeam = TEAMS[sport][homeIdx];
-    const awayTeam = pick(teams);
-
-    // Distribute statuses: 30% live, 30% finished, 40% scheduled
-    const roll = Math.random();
-    let status: 'live' | 'finished' | 'scheduled';
-    let startTime: Date;
-    let endTime: Date | undefined;
-    let homeScore = 0;
-    let awayScore = 0;
-
-    if (roll < 0.3) {
-      status = 'live';
-      startTime = hoursFromNow(-rand(0, 2));
-      homeScore = sport === 'basketball' ? rand(60, 110) : sport === 'cricket' ? rand(80, 300) : rand(0, 4);
-      awayScore = sport === 'basketball' ? rand(60, 110) : sport === 'cricket' ? rand(80, 300) : rand(0, 4);
-    } else if (roll < 0.6) {
-      status = 'finished';
-      startTime = hoursFromNow(-rand(3, 48));
-      endTime = new Date(startTime.getTime() + rand(90, 120) * 60 * 1000);
-      homeScore = sport === 'basketball' ? rand(80, 130) : sport === 'cricket' ? rand(120, 350) : rand(0, 6);
-      awayScore = sport === 'basketball' ? rand(80, 130) : sport === 'cricket' ? rand(120, 350) : rand(0, 6);
-    } else {
-      status = 'scheduled';
-      startTime = hoursFromNow(rand(1, 72));
-    }
-
-    result.push({ sport, homeTeam, awayTeam, status, startTime, endTime, homeScore, awayScore });
-  }
-  return result;
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
-const MATCH_COUNT = 120;
-const COMMENTARY_PER_MATCH = { live: 15, finished: 25, scheduled: 0 };
+const MATCH_COUNT = 150;
+const COMMENTARY_COUNT: Record<string, number> = { live: 18, finished: 30, scheduled: 0 };
 
 async function seed() {
-  console.log(`\n🌱 Generating ${MATCH_COUNT} matches…\n`);
+  const startedAt = Date.now();
+  console.log(`\n🌱 Seeding ${MATCH_COUNT} matches with unique pairings…\n`);
+
   const matchData = generateMatches(MATCH_COUNT);
 
-  // Insert in batches of 50
-  const allInserted = [];
+  const allInserted: typeof matchData[0] & { id: number }[] = [];
   for (let i = 0; i < matchData.length; i += 50) {
     const batch = matchData.slice(i, i + 50);
     const inserted = await db.insert(matches).values(batch).returning();
-    allInserted.push(...inserted);
+    allInserted.push(...inserted as any);
   }
 
-  const byStatus = { live: 0, finished: 0, scheduled: 0 };
-  allInserted.forEach(m => byStatus[m.status]++);
-  console.log(`  ✓ ${allInserted.length} matches inserted`);
-  console.log(`     ${byStatus.live} live · ${byStatus.finished} finished · ${byStatus.scheduled} scheduled\n`);
+  const counts = { live: 0, finished: 0, scheduled: 0 };
+  allInserted.forEach(m => counts[m.status]++);
 
-  // Generate commentary
-  const allCommentary = allInserted.flatMap(m => {
-    const count = COMMENTARY_PER_MATCH[m.status] ?? 0;
-    if (count === 0) return [];
-    return generateCommentaryForMatch(m.id, m.sport, m.homeTeam, m.awayTeam, m.status, count);
+  console.log(`  ✓ ${allInserted.length} matches`);
+  console.log(`     🔴 ${counts.live} live  ✅ ${counts.finished} finished  🕐 ${counts.scheduled} scheduled\n`);
+
+  const allCommentary = allInserted.flatMap((m: any) => {
+    const n = COMMENTARY_COUNT[m.status] ?? 0;
+    if (n === 0) return [];
+    return generateCommentary(m.id, m.sport, m.homeTeam, m.awayTeam, m.status, n);
   });
 
-  // Insert commentary in batches of 100
   for (let i = 0; i < allCommentary.length; i += 100) {
     await db.insert(commentary).values(allCommentary.slice(i, i + 100));
   }
 
-  console.log(`  ✓ ${allCommentary.length} commentary entries inserted\n`);
-  console.log('✅ Seed complete!\n');
+  const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+  console.log(`  ✓ ${allCommentary.length} commentary entries`);
+  console.log(`\n✅ Done in ${elapsed}s\n`);
 
   await pool.end();
 }
