@@ -6,7 +6,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { matchRouter } from './src/routes/matches';
 import { attachWebSocketServer } from './src/ws/server';
-// import { securityMiddleware } from './arcjet'
+import { securityMiddleware } from './arcjet'
 import http from 'http'
 import { commentaryRouter } from './src/routes/commentary';
 
@@ -25,7 +25,7 @@ app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:3001'], crede
 // JSON Middleware
 app.use(express.json());
 
-// app.use(securityMiddleware());
+app.use(securityMiddleware());
 
 
 
@@ -35,8 +35,8 @@ app.get('/', (_req: Request, res: Response) => {
     const uptimeStr = uptime < 60
         ? `${Math.floor(uptime)}s`
         : uptime < 3600
-        ? `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`
-        : `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`;
+            ? `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`
+            : `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`;
 
     res.send(`<!DOCTYPE html>
 <html lang="en">
